@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FreightMynd 4PL Visibility Dashboard Prototype</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --ink-2: #344154;
+      --muted: #64748b;
+      --line: #dbe3ee;
+      --surface: #f6f8fb;
+      --white: #ffffff;
+      --brand: #5458f1;
+      --blue: #1768ac;
+      --mint: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --green-soft: #e8fbf3;
+      --amber-soft: #fff6df;
+      --red-soft: #fff0f0;
+      --blue-soft: #edf5ff;
+      --shadow: 0 10px 30px rgba(23, 32, 51, .08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    button, input, select { font: inherit; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+    }
+
+    .sidebar {
+      background: #111827;
+      color: #d8dee9;
+      padding: 22px 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 4px 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, .1);
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand), #21c597);
+      position: relative;
+      flex: 0 0 auto;
+      box-shadow: 0 10px 24px rgba(84, 88, 241, .28);
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: #fff;
+      opacity: .94;
+    }
+
+    .brand-mark::before {
+      width: 22px;
+      height: 6px;
+      left: 9px;
+      top: 13px;
+      box-shadow: 0 10px 0 rgba(255,255,255,.94);
+    }
+
+    .brand-mark::after {
+      width: 6px;
+      height: 22px;
+      left: 24px;
+      top: 13px;
+    }
+
+    .brand-text strong {
+      display: block;
+      color: #fff;
+      font-size: 17px;
+      letter-spacing: -.01em;
+    }
+
+    .brand-text span {
+      display: block;
+      color: #9ca3af;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+      margin-top: 22px;
+    }
+
+    .nav button {
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #b8c0cc;
+      padding: 11px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .nav button.active,
+    .nav button:hover {
+      background: rgba(255, 255, 255, .08);
+      color: #fff;
+    }
+
+    .nav small {
+      color: #6ee7b7;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 22px 26px 36px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .title h1 {
+      font-size: 24px;
+      margin: 0 0 4px;
+      letter-spacing: -.02em;
+    }
+
+    .title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .select,
+    .search {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--ink-2);
+      padding: 0 11px;
+      min-width: 150px;
+    }
+
+    .search { min-width: 220px; }
+
+    .btn {
+      height: 38px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      padding: 0 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: var(--white);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .btn.brand { background: var(--brand); }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--white);
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .metric {
+      cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .metric:hover {
+      border-color: #b8c4d6;
+      box-shadow: var(--shadow);
+      transform: translateY(-1px);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 98px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 9px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 27px;
+      letter-spacing: -.02em;
+      line-height: 1;
+    }
+
+    .metric em {
+      display: block;
+      font-style: normal;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .trend-good { color: var(--mint) !important; }
+    .trend-warn { color: var(--amber) !important; }
+    .trend-bad { color: var(--red) !important; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(360px, .85fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      min-height: 54px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: -.01em;
+    }
+
+    .panel-header p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .tabs button {
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      height: 30px;
+      padding: 0 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .tabs button:last-child { border-right: 0; }
+    .tabs button.active { background: var(--white); color: var(--ink); font-weight: 700; }
+
+    .content { padding: 16px; }
+
+    .warehouse-layout {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .zone {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 10px;
+      min-height: 92px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .zone::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: var(--fill);
+      background: linear-gradient(180deg, rgba(16,185,129,.18), rgba(16,185,129,.36));
+    }
+
+    .zone.warn::after { background: linear-gradient(180deg, rgba(245,158,11,.17), rgba(245,158,11,.36)); }
+    .zone.bad::after { background: linear-gradient(180deg, rgba(239,68,68,.14), rgba(239,68,68,.32)); }
+
+    .zone strong,
+    .zone span {
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+
+    .zone strong { font-size: 13px; }
+    .zone span { color: var(--muted); font-size: 12px; margin-top: 5px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 700;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      white-space: nowrap;
+    }
+
+    td {
+      border-bottom: 1px solid #edf1f6;
+      padding: 10px 8px;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    tbody tr {
+      cursor: pointer;
+      transition: background-color .14s ease;
+    }
+
+    tbody tr:hover { background: #f8fbff; }
+
+    .sku {
+      font-weight: 800;
+      color: var(--ink);
+      display: block;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 11px;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 0 9px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .ok { background: var(--green-soft); color: #067a54; }
+    .warn { background: var(--amber-soft); color: #946000; }
+    .bad { background: var(--red-soft); color: #b52525; }
+    .info { background: var(--blue-soft); color: #1768ac; }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .mini-card h3 {
+      margin: 0 0 12px;
+      font-size: 13px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 160px;
+      display: block;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .lane {
+      display: grid;
+      grid-template-columns: 118px 1fr 78px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .bar {
+      height: 10px;
+      background: #e7edf5;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: var(--progress);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--brand));
+    }
+
+    .bar.warn span { background: linear-gradient(90deg, var(--amber), var(--red)); }
+
+    .lane strong { font-size: 12px; }
+    .lane small { color: var(--muted); font-size: 11px; }
+
+    .exceptions {
+      display: grid;
+      gap: 10px;
+    }
+
+    .exception {
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      border-radius: 8px;
+      padding: 10px 11px;
+      background: #fff;
+    }
+
+    .exception.red { border-left-color: var(--red); }
+    .exception.amber { border-left-color: var(--amber); }
+    .exception.blue { border-left-color: var(--blue); }
+
+    .exception strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .exception span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .exception-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .action {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 7px;
+      min-height: 30px;
+      padding: 0 9px;
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .action:hover {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .challenge-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .challenge {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+    }
+
+    .challenge b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .challenge span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .data-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 112px;
+      cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    .data-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .data-card b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .data-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .drawer {
+      position: fixed;
+      inset: 0 0 0 auto;
+      width: min(440px, 100vw);
+      background: var(--white);
+      border-left: 1px solid var(--line);
+      box-shadow: -20px 0 50px rgba(15, 23, 42, .18);
+      transform: translateX(105%);
+      transition: transform .22s ease;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .drawer-header h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+
+    .drawer-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .drawer-body {
+      padding: 16px 18px;
+      overflow: auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #edf1f6;
+      font-size: 13px;
+    }
+
+    .kv span { color: var(--muted); }
+    .kv b { color: var(--ink); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--ink);
+      color: #fff;
+      border-radius: 8px;
+      padding: 11px 14px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 30;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, .36);
+      display: none;
+      place-items: center;
+      z-index: 25;
+      padding: 18px;
+    }
+
+    .modal-backdrop.open { display: grid; }
+
+    .modal {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .28);
+      overflow: hidden;
+    }
+
+    .modal header {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .modal h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .modal form {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 38px;
+      color: var(--ink);
+    }
+
+    .field textarea { min-height: 86px; resize: vertical; }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    @media (max-width: 1180px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; }
+      .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+      .challenge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 720px) {
+      .main { padding: 16px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .controls { justify-content: stretch; width: 100%; }
+      .select, .search, .btn { width: 100%; }
+      .metrics, .split, .warehouse-layout, .challenge-grid { grid-template-columns: 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .nav { grid-template-columns: 1fr 1fr; }
+      .lane { grid-template-columns: 1fr; }
+      th:nth-child(4), td:nth-child(4),
+      th:nth-child(6), td:nth-child(6) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="brand-text">
+          <strong>FreightMynd</strong>
+          <span>4PL visibility cockpit</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Dashboard sections">
+        <button class="active" data-view="overview">Overview <small>Live</small></button>
+        <button data-view="inventory">Inventory <small>14</small></button>
+        <button data-view="inbound">Inbound ETA <small>8</small></button>
+        <button data-view="coldchain">Cold Chain <small>3</small></button>
+        <button data-view="warehouse">Warehouse <small>92%</small></button>
+        <button data-view="dispatch">Dispatch <small>21</small></button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title">
+          <h1>Dubai Perishables Control Tower</h1>
+          <p>End-to-end stock, container, warehouse, allocation, and delivery visibility for a 4PL managing client-owned inventory.</p>
+        </div>
+        <div class="controls">
+          <input class="search" id="search" placeholder="Search SKU, supplier, customer" />
+          <select class="select" id="clientFilter" aria-label="Client filter">
+            <option value="all">All clients</option>
+            <option value="FreshMart">FreshMart</option>
+            <option value="Gulf Retail">Gulf Retail</option>
+            <option value="Hotel Supply Co">Hotel Supply Co</option>
+          </select>
+          <select class="select" id="riskFilter" aria-label="Risk filter">
+            <option value="all">All risk levels</option>
+            <option value="Critical">Critical</option>
+            <option value="Watch">Watch</option>
+            <option value="Healthy">Healthy</option>
+          </select>
+          <button class="btn secondary" data-action="export">Export</button>
+          <button class="btn brand" data-action="alert">Create Alert</button>
+          <button class="icon-btn" data-action="assistant" aria-label="Open AI assistant">?</button>
+          <button class="btn" id="resetBtn">Reset</button>
+        </div>
+      </header>
+
+      <div id="view-overview" class="view active">
+      <section class="metrics" aria-label="Key metrics">
+        <article class="metric" data-view="inventory">
+          <span>Available sellable stock</span>
+          <strong id="metricStock">18,420</strong>
+          <em class="trend-good">+2 inbound containers today</em>
+        </article>
+        <article class="metric" data-view="coldchain">
+          <span>At-risk lots</span>
+          <strong id="metricRisk">7</strong>
+          <em class="trend-bad">3 temperature exceptions</em>
+        </article>
+        <article class="metric" data-view="warehouse">
+          <span>Warehouse utilization</span>
+          <strong>92%</strong>
+          <em class="trend-warn">Chiller B near capacity</em>
+        </article>
+        <article class="metric" data-view="dispatch">
+          <span>Orders ready to dispatch</span>
+          <strong>21</strong>
+          <em class="trend-good">AED 486k value</em>
+        </article>
+        <article class="metric" data-view="inbound">
+          <span>Projected stockouts</span>
+          <strong>4</strong>
+          <em class="trend-warn">Next 72 hours</em>
+        </article>
+      </section>
+
+      <section class="grid">
+        <div>
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Warehouse Stock Position</h2>
+                <p>Live FEFO inventory by SKU, lot, temperature zone, customer allocation, and stockout risk.</p>
+              </div>
+              <div class="tabs" aria-label="Inventory view">
+                <button class="active" data-inventory-mode="Sellable">Sellable</button>
+                <button data-inventory-mode="Quarantine">Quarantine</button>
+                <button data-inventory-mode="Allocated">Allocated</button>
+              </div>
+            </div>
+            <div class="content">
+              <div class="warehouse-layout" aria-label="Warehouse zones">
+                <div class="zone" style="--fill:72%"><strong>Chiller A</strong><span>2-6 C<br>72% full</span></div>
+                <div class="zone warn" style="--fill:92%"><strong>Chiller B</strong><span>2-6 C<br>92% full</span></div>
+                <div class="zone" style="--fill:64%"><strong>Ripening</strong><span>12-15 C<br>64% full</span></div>
+                <div class="zone bad" style="--fill:88%"><strong>QC Hold</strong><span>8 lots<br>88% full</span></div>
+                <div class="zone" style="--fill:56%"><strong>Outbound</strong><span>21 orders<br>56% staged</span></div>
+                <div class="zone warn" style="--fill:81%"><strong>Cross Dock</strong><span>6 loads<br>81% booked</span></div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>SKU / Lot</th>
+                    <th>Client</th>
+                    <th>On Hand</th>
+                    <th>Allocated</th>
+                    <th>Expiry</th>
+                    <th>Zone</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryRows"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <div class="split" style="margin-top:14px">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Inbound Container Pipeline</h2>
+                  <p>PO-to-port-to-warehouse visibility with ETA and clearance status.</p>
+                </div>
+              </div>
+              <div class="content timeline">
+                <div class="lane"><strong>CNTR-8842</strong><div class="bar"><span style="--progress:86%"></span></div><small>Jebel Ali +4h</small></div>
+                <div class="lane"><strong>CNTR-8846</strong><div class="bar warn"><span style="--progress:68%"></span></div><small>Docs missing</small></div>
+                <div class="lane"><strong>CNTR-8851</strong><div class="bar"><span style="--progress:42%"></span></div><small>At sea</small></div>
+                <div class="lane"><strong>CNTR-8860</strong><div class="bar"><span style="--progress:24%"></span></div><small>Origin pickup</small></div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Cold Chain Trend</h2>
+                  <p>Temperature compliance across active lots and reefers.</p>
+                </div>
+              </div>
+              <div class="content">
+                <canvas id="tempChart" width="420" height="180" aria-label="Temperature trend chart"></canvas>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <aside>
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Exception Queue</h2>
+                <p>What needs action before service, shelf-life, or cost is affected.</p>
+              </div>
+            </div>
+            <div class="content exceptions">
+              <div class="exception red">
+                <strong>3 pallets above temperature threshold</strong>
+                <span>FreshMart mangoes, Lot MNG-2048, Chiller B. Hold dispatch and trigger QC inspection.</span>
+                <div class="exception-actions">
+                  <button class="action" data-detail="MNG-2048">Open Lot</button>
+                  <button class="action" data-action="qc">Create QC Task</button>
+                  <button class="action" data-action="hold">Hold Dispatch</button>
+                </div>
+              </div>
+              <div class="exception amber">
+                <strong>Supplier documents not matched to container</strong>
+                <span>CNTR-8846 has commercial invoice but missing packing list and phyto certificate.</span>
+                <div class="exception-actions">
+                  <button class="action" data-container="CNTR-8846">Open Container</button>
+                  <button class="action" data-action="supplier">Request Docs</button>
+                </div>
+              </div>
+              <div class="exception amber">
+                <strong>Projected stockout: baby spinach</strong>
+                <span>Gulf Retail demand exceeds available sellable stock in 48 hours unless CNTR-8842 clears today.</span>
+                <div class="exception-actions">
+                  <button class="action" data-detail="SPN-4421">Open SKU</button>
+                  <button class="action" data-action="reallocate">Suggest Reallocation</button>
+                </div>
+              </div>
+              <div class="exception blue">
+                <strong>Customer allocation conflict</strong>
+                <span>Hotel Supply Co and FreshMart orders are drawing from the same FEFO lot.</span>
+                <div class="exception-actions">
+                  <button class="action" data-action="allocation">Resolve Allocation</button>
+                  <button class="action" data-view="dispatch">View Orders</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel" style="margin-top:14px">
+            <div class="panel-header">
+              <div>
+                <h2>Customer Allocation</h2>
+                <p>Committed stock vs available stock by delivery customer.</p>
+              </div>
+            </div>
+            <div class="content">
+              <canvas id="allocationChart" width="420" height="190" aria-label="Customer allocation chart"></canvas>
+            </div>
+          </article>
+        </aside>
+      </section>
+
+      <section class="challenge-grid" aria-label="Likely hidden challenges">
+        <article class="challenge"><b>Demand vs stock mismatch</b><span>Orders are accepted without knowing true sellable stock, QC holds, and inbound ETA certainty.</span></article>
+        <article class="challenge"><b>FEFO and expiry leakage</b><span>Perishable goods need expiry-led allocation, not only quantity-led picking.</span></article>
+        <article class="challenge"><b>Cold-chain blind spots</b><span>Temperature events across reefer, port, warehouse, and delivery can break SLA and claims visibility.</span></article>
+        <article class="challenge"><b>Document-to-stock delay</b><span>Inventory becomes visible late because supplier docs, customs docs, and warehouse receiving are disconnected.</span></article>
+        <article class="challenge"><b>Customer-level profitability</b><span>Without service cost, storage days, wastage, and delivery exceptions, account margin is unclear.</span></article>
+        <article class="challenge"><b>Warehouse capacity pressure</b><span>Inbound containers can arrive without enough chiller, QC, staging, or dispatch capacity.</span></article>
+        <article class="challenge"><b>Claims and proof gaps</b><span>Shortage, damage, expiry, and temperature disputes need a clean audit trail across the chain.</span></article>
+        <article class="challenge"><b>Manual status chasing</b><span>Ops teams lose time asking port, warehouse, drivers, and suppliers for updates already sitting in emails and systems.</span></article>
+      </section>
+      </div>
+
+      <section id="view-inventory" class="view">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Inventory Workbench</h2>
+              <p>Click any lot to inspect FEFO position, QC status, allocation, and recommended action.</p>
+            </div>
+            <button class="btn secondary" data-action="cycle-inventory">Cycle Status View</button>
+          </div>
+          <div class="content">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU / Lot</th><th>Client</th><th>On Hand</th><th>Allocated</th><th>Expiry</th><th>Zone</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryRowsFull"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="view-inbound" class="view">
+        <div class="detail-grid">
+          <article class="data-card" data-container="CNTR-8842"><b>CNTR-8842</b><span>Valencia to Jebel Ali. ETA +4h. Contains baby spinach and berries. Customs pre-clearance: 82%.</span><span class="pill warn" style="margin-top:10px">Stockout dependency</span></article>
+          <article class="data-card" data-container="CNTR-8846"><b>CNTR-8846</b><span>Nairobi to Jebel Ali. Commercial invoice received, packing list and phytosanitary certificate missing.</span><span class="pill bad" style="margin-top:10px">Docs missing</span></article>
+          <article class="data-card" data-container="CNTR-8851"><b>CNTR-8851</b><span>Rotterdam to Jebel Ali. Reefer telemetry normal. Warehouse receiving slot requested.</span><span class="pill ok" style="margin-top:10px">Healthy</span></article>
+          <article class="data-card" data-container="CNTR-8860"><b>CNTR-8860</b><span>Origin pickup scheduled. Supplier ASN received but SKU mapping is incomplete.</span><span class="pill warn" style="margin-top:10px">Mapping needed</span></article>
+        </div>
+      </section>
+
+      <section id="view-coldchain" class="view">
+        <div class="split">
+          <article class="panel">
+            <div class="panel-header"><div><h2>Cold Chain Control</h2><p>Temperature excursions and chain-of-custody proof by lot and container.</p></div></div>
+            <div class="content"><canvas id="tempChartLarge" width="620" height="240"></canvas></div>
+          </article>
+          <article class="panel">
+            <div class="panel-header"><div><h2>Cold Chain Exceptions</h2><p>Click actions to create QC tasks or hold customer dispatch.</p></div></div>
+            <div class="content exceptions">
+              <div class="exception red"><strong>MNG-2048 above threshold</strong><span>6.7 C peak for 42 minutes in Chiller B.</span><div class="exception-actions"><button class="action" data-detail="MNG-2048">Open Lot</button><button class="action" data-action="qc">QC Task</button></div></div>
+              <div class="exception amber"><strong>BER-6692 shelf-life reduced</strong><span>Estimated sellable life adjusted from 2.8 days to 1.9 days.</span><div class="exception-actions"><button class="action" data-detail="BER-6692">Open Lot</button><button class="action" data-action="reallocate">Prioritize FEFO</button></div></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-warehouse" class="view">
+        <div class="detail-grid">
+          <article class="data-card" data-action="zone-a"><b>Chiller A</b><span>72% full. Healthy capacity for tonight receiving. 4 outbound picks staged.</span></article>
+          <article class="data-card" data-action="zone-b"><b>Chiller B</b><span>92% full. Capacity breach likely if CNTR-8842 arrives before 18:00.</span><span class="pill warn" style="margin-top:10px">Near capacity</span></article>
+          <article class="data-card" data-action="zone-qc"><b>QC Hold</b><span>8 lots blocked. 3 temperature, 2 document mismatch, 3 receiving variance.</span><span class="pill bad" style="margin-top:10px">Action needed</span></article>
+          <article class="data-card" data-action="slot-plan"><b>Receiving Slot Plan</b><span>Auto-suggested unloading order based on expiry, customer urgency, and chiller capacity.</span></article>
+        </div>
+      </section>
+
+      <section id="view-dispatch" class="view">
+        <article class="panel">
+          <div class="panel-header">
+            <div><h2>Dispatch Board</h2><p>Customer orders, allocation confidence, FEFO compliance, and delivery readiness.</p></div>
+            <button class="btn brand" data-action="dispatch">Confirm Dispatch Plan</button>
+          </div>
+          <div class="content">
+            <table>
+              <thead><tr><th>Order</th><th>Customer</th><th>SKU</th><th>Qty</th><th>Ready</th><th>Risk</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr data-order="ORD-9012"><td><span class="sku">ORD-9012</span><span class="sub">Dubai Marina route</span></td><td>FreshMart</td><td>MNG-2048</td><td>480</td><td>Hold</td><td><span class="pill bad">Temp</span></td><td><button class="action" data-action="hold">Hold</button></td></tr>
+                <tr data-order="ORD-9014"><td><span class="sku">ORD-9014</span><span class="sub">Downtown hotels</span></td><td>Hotel Supply Co</td><td>BAN-5520</td><td>720</td><td>Yes</td><td><span class="pill ok">Clear</span></td><td><button class="action" data-action="dispatch-one">Release</button></td></tr>
+                <tr data-order="ORD-9021"><td><span class="sku">ORD-9021</span><span class="sub">Sharjah retail</span></td><td>Gulf Retail</td><td>SPN-4421</td><td>510</td><td>Partial</td><td><span class="pill warn">Stockout</span></td><td><button class="action" data-action="reallocate">Reallocate</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <aside class="drawer" id="drawer" aria-label="Detail drawer">
+    <div class="drawer-header">
+      <div>
+        <h2 id="drawerTitle">Lot details</h2>
+        <p id="drawerSubtitle">Operational trace and recommended actions</p>
+      </div>
+      <button class="icon-btn" id="drawerClose" aria-label="Close details">x</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </aside>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Create alert">
+      <header>
+        <h2 id="modalTitle">Create Visibility Alert</h2>
+        <button class="icon-btn" id="modalClose" aria-label="Close modal">x</button>
+      </header>
+      <form id="alertForm">
+        <div class="field"><label>Alert type</label><select><option>Stockout risk</option><option>Temperature exception</option><option>Document missing</option><option>Warehouse capacity breach</option></select></div>
+        <div class="field"><label>Threshold</label><input value="Notify when stock cover falls below 48 hours" /></div>
+        <div class="field"><label>Notify</label><input value="4PL ops, warehouse supervisor, client success owner" /></div>
+        <div class="field"><label>Notes</label><textarea>Auto-create task and attach shipment, lot, and customer order evidence.</textarea></div>
+        <div class="modal-actions"><button type="button" class="btn secondary" id="modalCancel">Cancel</button><button class="btn brand" type="submit">Save Alert</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Action completed</div>
+
+  <script>
+    const inventory = [
+      { sku: "MNG-2048", item: "Mango cartons", client: "FreshMart", onHand: 2440, allocated: 1680, expiry: "2 days", zone: "Chiller B", status: "Critical" },
+      { sku: "AVO-1130", item: "Avocado trays", client: "Hotel Supply Co", onHand: 1820, allocated: 760, expiry: "5 days", zone: "Ripening", status: "Watch" },
+      { sku: "SPN-4421", item: "Baby spinach", client: "Gulf Retail", onHand: 540, allocated: 510, expiry: "3 days", zone: "Chiller A", status: "Critical" },
+      { sku: "TOM-7814", item: "Cherry tomatoes", client: "FreshMart", onHand: 3160, allocated: 980, expiry: "6 days", zone: "Chiller A", status: "Healthy" },
+      { sku: "LET-3309", item: "Romaine lettuce", client: "Gulf Retail", onHand: 1260, allocated: 840, expiry: "4 days", zone: "Chiller B", status: "Watch" },
+      { sku: "BAN-5520", item: "Banana boxes", client: "Hotel Supply Co", onHand: 4900, allocated: 1900, expiry: "7 days", zone: "Ripening", status: "Healthy" },
+      { sku: "BER-6692", item: "Blueberries", client: "FreshMart", onHand: 860, allocated: 620, expiry: "2 days", zone: "QC Hold", status: "Critical" },
+      { sku: "CAR-1178", item: "Carrot bags", client: "Gulf Retail", onHand: 3440, allocated: 710, expiry: "10 days", zone: "Chiller A", status: "Healthy" }
+    ];
+
+    const rows = document.getElementById("inventoryRows");
+    const rowsFull = document.getElementById("inventoryRowsFull");
+    const search = document.getElementById("search");
+    const clientFilter = document.getElementById("clientFilter");
+    const riskFilter = document.getElementById("riskFilter");
+    const resetBtn = document.getElementById("resetBtn");
+    const metricStock = document.getElementById("metricStock");
+    const metricRisk = document.getElementById("metricRisk");
+    const drawer = document.getElementById("drawer");
+    const drawerTitle = document.getElementById("drawerTitle");
+    const drawerSubtitle = document.getElementById("drawerSubtitle");
+    const drawerBody = document.getElementById("drawerBody");
+    const toast = document.getElementById("toast");
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    let inventoryMode = "Sellable";
+
+    function statusClass(status) {
+      if (status === "Critical") return "bad";
+      if (status === "Watch") return "warn";
+      return "ok";
+    }
+
+    function renderInventory() {
+      const query = search.value.trim().toLowerCase();
+      const client = clientFilter.value;
+      const risk = riskFilter.value;
+      const filtered = inventory.filter(item => {
+        const q = `${item.sku} ${item.item} ${item.client} ${item.zone}`.toLowerCase();
+        return (!query || q.includes(query)) &&
+          (client === "all" || item.client === client) &&
+          (risk === "all" || item.status === risk);
+      });
+
+      const tableHtml = filtered.map(item => `
+        <tr data-detail="${item.sku}">
+          <td><span class="sku">${item.sku}</span><span class="sub">${item.item}</span></td>
+          <td>${item.client}</td>
+          <td>${item.onHand.toLocaleString()}</td>
+          <td>${item.allocated.toLocaleString()}</td>
+          <td>${item.expiry}</td>
+          <td>${item.zone}</td>
+          <td><span class="pill ${statusClass(item.status)}">${item.status}</span></td>
+        </tr>
+      `).join("");
+      rows.innerHTML = tableHtml;
+      if (rowsFull) rowsFull.innerHTML = tableHtml;
+
+      const stock = filtered.reduce((sum, item) => sum + item.onHand - item.allocated, 0);
+      const riskCount = filtered.filter(item => item.status !== "Healthy").length;
+      metricStock.textContent = stock.toLocaleString();
+      metricRisk.textContent = riskCount.toString();
+    }
+
+    function drawTempChart(canvasId = "tempChart") {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      const data = [3.4, 3.8, 4.1, 5.2, 6.7, 5.9, 4.6, 4.1, 3.9, 4.2, 4.4, 4.0];
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = "#dbe3ee";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 4; i++) {
+        const y = 24 + i * 36;
+        ctx.beginPath();
+        ctx.moveTo(32, y);
+        ctx.lineTo(w - 18, y);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#64748b";
+      ctx.font = "12px Inter, sans-serif";
+      ctx.fillText("8 C", 4, 28);
+      ctx.fillText("2 C", 4, 136);
+      ctx.strokeStyle = "#f59e0b";
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(32, 70);
+      ctx.lineTo(w - 18, 70);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = "#5458f1";
+      ctx.lineWidth = 4;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      data.forEach((value, index) => {
+        const x = 36 + index * ((w - 70) / (data.length - 1));
+        const y = 154 - ((value - 2) / 6) * 130;
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      data.forEach((value, index) => {
+        const x = 36 + index * ((w - 70) / (data.length - 1));
+        const y = 154 - ((value - 2) / 6) * 130;
+        ctx.fillStyle = value > 6 ? "#ef4444" : "#10b981";
+        ctx.beginPath();
+        ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawAllocationChart() {
+      const canvas = document.getElementById("allocationChart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const rows = [
+        ["FreshMart", 78, "#5458f1"],
+        ["Gulf Retail", 91, "#f59e0b"],
+        ["Hotel Supply Co", 56, "#10b981"],
+        ["Unallocated", 34, "#1768ac"]
+      ];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = "13px Inter, sans-serif";
+      rows.forEach((row, i) => {
+        const y = 28 + i * 38;
+        ctx.fillStyle = "#172033";
+        ctx.fillText(row[0], 4, y);
+        ctx.fillStyle = "#e7edf5";
+        ctx.fillRect(128, y - 12, 210, 12);
+        ctx.fillStyle = row[2];
+        ctx.fillRect(128, y - 12, 210 * row[1] / 100, 12);
+        ctx.fillStyle = "#64748b";
+        ctx.fillText(`${row[1]}%`, 350, y);
+      });
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function showView(viewName) {
+      document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === `view-${viewName}`));
+      document.querySelectorAll(".nav button").forEach(button => button.classList.toggle("active", button.dataset.view === viewName));
+      const labels = {
+        overview: ["Dubai Perishables Control Tower", "End-to-end stock, container, warehouse, allocation, and delivery visibility for a 4PL managing client-owned inventory."],
+        inventory: ["Inventory Workbench", "SKU, lot, expiry, QC, allocation, and sellable stock visibility for client-owned inventory."],
+        inbound: ["Inbound Container ETA", "Container-level visibility from supplier pickup through Jebel Ali clearance and warehouse receiving."],
+        coldchain: ["Cold Chain Control", "Temperature compliance, shelf-life adjustment, QC decisions, and claims evidence."],
+        warehouse: ["Warehouse Capacity", "Chiller utilization, QC hold, receiving slots, cross-dock staging, and outbound readiness."],
+        dispatch: ["Dispatch Control", "Customer order release, FEFO compliance, allocation conflicts, and route readiness."]
+      };
+      document.querySelector(".title h1").textContent = labels[viewName][0];
+      document.querySelector(".title p").textContent = labels[viewName][1];
+      if (viewName === "coldchain") drawTempChart("tempChartLarge");
+    }
+
+    function openDrawerForLot(sku) {
+      const item = inventory.find(row => row.sku === sku);
+      if (!item) return;
+      const sellable = item.onHand - item.allocated;
+      drawerTitle.textContent = `${item.sku} - ${item.item}`;
+      drawerSubtitle.textContent = `${item.client} | ${item.zone} | ${item.status}`;
+      drawerBody.innerHTML = `
+        <div class="kv"><span>Sellable stock</span><b>${sellable.toLocaleString()} cartons</b></div>
+        <div class="kv"><span>On hand</span><b>${item.onHand.toLocaleString()}</b></div>
+        <div class="kv"><span>Allocated</span><b>${item.allocated.toLocaleString()}</b></div>
+        <div class="kv"><span>Expiry cover</span><b>${item.expiry}</b></div>
+        <div class="kv"><span>Storage zone</span><b>${item.zone}</b></div>
+        <div class="kv"><span>AI recommendation</span><b>${item.status === "Critical" ? "Hold risky dispatch, prioritize QC, and reallocate healthy lots first." : item.status === "Watch" ? "Monitor FEFO allocation and confirm receiving capacity." : "Proceed with FEFO release."}</b></div>
+        <button class="btn brand" data-action="qc">Create QC / Ops Task</button>
+        <button class="btn secondary" data-action="reallocate">Suggest FEFO Reallocation</button>
+        <button class="btn secondary" data-action="export">Export Lot Evidence</button>
+      `;
+      drawer.classList.add("open");
+    }
+
+    function openDrawerForContainer(container) {
+      const details = {
+        "CNTR-8842": ["Valencia to Jebel Ali", "ETA +4h, customs pre-clearance 82%, receiving slot requested.", "Baby spinach stockout depends on this clearance."],
+        "CNTR-8846": ["Nairobi to Jebel Ali", "Missing packing list and phytosanitary certificate.", "AI should request documents from supplier and warn customs team."],
+        "CNTR-8851": ["Rotterdam to Jebel Ali", "At sea, reefer telemetry normal.", "No action needed except receiving slot confirmation."],
+        "CNTR-8860": ["Origin pickup", "ASN received, SKU mapping incomplete.", "AI can map supplier SKU to client SKU before arrival."]
+      }[container] || ["Container", "Operational details unavailable.", "No recommendation."];
+      drawerTitle.textContent = container;
+      drawerSubtitle.textContent = details[0];
+      drawerBody.innerHTML = `
+        <div class="kv"><span>Status</span><b>${details[1]}</b></div>
+        <div class="kv"><span>Recommendation</span><b>${details[2]}</b></div>
+        <div class="kv"><span>Documents</span><b>Commercial invoice, packing list, phyto certificate, bill of lading</b></div>
+        <div class="kv"><span>Linked systems</span><b>Supplier email, customs broker, WMS, client order portal</b></div>
+        <button class="btn brand" data-action="supplier">Request Missing Docs</button>
+        <button class="btn secondary" data-action="alert">Create ETA / Clearance Alert</button>
+      `;
+      drawer.classList.add("open");
+    }
+
+    function openModal(title = "Create Visibility Alert") {
+      document.getElementById("modalTitle").textContent = title;
+      modalBackdrop.classList.add("open");
+    }
+
+    function handleAction(action) {
+      const messages = {
+        export: "Export prepared: dashboard snapshot, CSV, and exception evidence.",
+        alert: "Alert workflow opened.",
+        assistant: "AI assistant: ask about stockouts, ETA risk, QC holds, or dispatch priority.",
+        qc: "QC task created and linked to lot evidence.",
+        hold: "Dispatch hold applied until QC release.",
+        supplier: "Supplier document request drafted with missing-document list.",
+        reallocate: "FEFO reallocation suggestion generated.",
+        allocation: "Allocation conflict workflow opened.",
+        dispatch: "Dispatch plan confirmed for clear orders; risky orders kept on hold.",
+        "dispatch-one": "Order released to outbound staging.",
+        "cycle-inventory": `Inventory view changed to ${inventoryMode}.`
+      };
+      if (action === "alert") openModal();
+      else if (action === "assistant") openModal("Ask FreightMynd AI");
+      showToast(messages[action] || "Prototype action completed.");
+    }
+
+    [search, clientFilter, riskFilter].forEach(el => el.addEventListener("input", renderInventory));
+    resetBtn.addEventListener("click", () => {
+      search.value = "";
+      clientFilter.value = "all";
+      riskFilter.value = "all";
+      renderInventory();
+      showToast("Filters reset.");
+    });
+
+    document.addEventListener("click", event => {
+      const viewButton = event.target.closest("[data-view]");
+      if (viewButton) {
+        showView(viewButton.dataset.view);
+        return;
+      }
+
+      const lotButton = event.target.closest("[data-detail]");
+      if (lotButton) {
+        openDrawerForLot(lotButton.dataset.detail);
+        return;
+      }
+
+      const containerButton = event.target.closest("[data-container]");
+      if (containerButton) {
+        openDrawerForContainer(containerButton.dataset.container);
+        return;
+      }
+
+      const actionButton = event.target.closest("[data-action]");
+      if (actionButton) {
+        const action = actionButton.dataset.action;
+        if (action === "cycle-inventory") {
+          const modes = ["Sellable", "Quarantine", "Allocated"];
+          inventoryMode = modes[(modes.indexOf(inventoryMode) + 1) % modes.length];
+          document.querySelectorAll("[data-inventory-mode]").forEach(button => button.classList.toggle("active", button.dataset.inventoryMode === inventoryMode));
+        }
+        handleAction(action);
+      }
+    });
+
+    document.querySelectorAll("[data-inventory-mode]").forEach(button => {
+      button.addEventListener("click", () => {
+        inventoryMode = button.dataset.inventoryMode;
+        document.querySelectorAll("[data-inventory-mode]").forEach(tab => tab.classList.toggle("active", tab === button));
+        if (inventoryMode === "Quarantine") riskFilter.value = "Critical";
+        if (inventoryMode === "Allocated") riskFilter.value = "all";
+        renderInventory();
+        showToast(`${inventoryMode} inventory view loaded.`);
+      });
+    });
+
+    document.getElementById("drawerClose").addEventListener("click", () => drawer.classList.remove("open"));
+    document.getElementById("modalClose").addEventListener("click", () => modalBackdrop.classList.remove("open"));
+    document.getElementById("modalCancel").addEventListener("click", () => modalBackdrop.classList.remove("open"));
+    modalBackdrop.addEventListener("click", event => {
+      if (event.target === modalBackdrop) modalBackdrop.classList.remove("open");
+    });
+    document.getElementById("alertForm").addEventListener("submit", event => {
+      event.preventDefault();
+      modalBackdrop.classList.remove("open");
+      showToast("Alert saved and assigned to 4PL ops.");
+    });
+
+    renderInventory();
+    drawTempChart();
+    drawTempChart("tempChartLarge");
+    drawAllocationChart();
+  </script>
+</body>
+</html>
